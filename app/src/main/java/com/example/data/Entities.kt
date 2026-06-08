@@ -10,6 +10,10 @@ data class User(
     val email: String,
     val passwordHash: String = "", // Used for local authentication
     val remindersEnabled: Boolean = true,
+    val major: String = "",
+    val studyGoal: String = "",
+    val bio: String = "",
+    val yearOfStudy: String = "",
     val lastSyncedAt: Long = System.currentTimeMillis()
 )
 
@@ -32,6 +36,7 @@ data class Assessment(
     val subjectId: String, // Relationship
     val dueDate: String, // Format: YYYY-MM-DD
     val dueTime: String, // Format: HH:MM
+    val isCompleted: Boolean = false, // Added field to track completed tasks
     val lastUpdated: Long = System.currentTimeMillis()
 )
 
@@ -41,5 +46,6 @@ data class Note(
     val userId: String,
     val title: String,
     val content: String,
+    val subjectId: String? = null, // Added field to associate note with subject
     val lastUpdated: Long = System.currentTimeMillis()
 )

@@ -29,6 +29,16 @@ class UniTaskViewModel(application: Application) : AndroidViewModel(application)
     private val _currentScreen = MutableStateFlow(AppScreen.LOGIN)
     val currentScreen: StateFlow<AppScreen> = _currentScreen.asStateFlow()
 
+    // App Theme / Dark mode toggle
+    private val _isDarkMode = MutableStateFlow(false)
+    val isDarkMode: StateFlow<Boolean> = _isDarkMode.asStateFlow()
+
+    fun toggleDarkMode() {
+        val newMode = !_isDarkMode.value
+        _isDarkMode.value = newMode
+        sharedPrefs.edit().putBoolean("is_dark_mode", newMode).apply()
+    }
+
     // Current authenticated user
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
@@ -63,6 +73,7 @@ class UniTaskViewModel(application: Application) : AndroidViewModel(application)
     init {
         val database = AppDatabase.getDatabase(application)
         repository = UniTaskRepository(database)
+        _isDarkMode.value = sharedPrefs.getBoolean("is_dark_mode", false)
 
         // Auto-login if session exists
         val savedUserId = sharedPrefs.getString("logged_in_user_id", null)
@@ -141,7 +152,7 @@ class UniTaskViewModel(application: Application) : AndroidViewModel(application)
             val mockGoogleUser = User(
                 userId = mockGoogleId,
                 name = "University Student",
-                email = "nashafeng32@gmail.com", // Injects actual user email
+                email = "student@example.com", // Injects generic companion email
                 passwordHash = "google_auth_secured",
                 remindersEnabled = true
             )
@@ -287,6 +298,18 @@ class UniTaskViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun toggleAssessmentCompleted(assessment: Assessment) {
+        viewModelScope.launch {
+            triggerSyncing()
+            val updated = assessment.copy(
+                isCompleted = !assessment.isCompleted,
+                lastUpdated = System.currentTimeMillis()
+            )
+            repository.saveAssessment(updated)
+            triggerSyncState()
+        }
+    }
+
     fun deleteAssessment(assessment: Assessment) {
         viewModelScope.launch {
             triggerSyncing()
@@ -296,7 +319,7 @@ class UniTaskViewModel(application: Application) : AndroidViewModel(application)
     }
 
     // --- Note Actions ---
-    fun addNote(title: String, content: String) {
+    fun addNote(title: String, content: String, subjectId: String? = null) {
         val user = _currentUser.value ?: return
         viewModelScope.launch {
             triggerSyncing()
@@ -304,19 +327,21 @@ class UniTaskViewModel(application: Application) : AndroidViewModel(application)
                 noteId = UUID.randomUUID().toString(),
                 userId = user.userId,
                 title = title,
-                content = content
+                content = content,
+                subjectId = subjectId
             )
             repository.saveNote(note)
             triggerSyncState()
         }
     }
 
-    fun updateNote(note: Note, title: String, content: String) {
+    fun updateNote(note: Note, title: String, content: String, subjectId: String? = null) {
         viewModelScope.launch {
             triggerSyncing()
             val updated = note.copy(
                 title = title,
                 content = content,
+                subjectId = subjectId,
                 lastUpdated = System.currentTimeMillis()
             )
             repository.saveNote(updated)
@@ -408,6 +433,47 @@ class UniTaskViewModel(application: Application) : AndroidViewModel(application)
 
     fun clearEmailSimulation() {
         _reminderEmailSim.value = null
+    }
+
+    fun updateProfile(name: String, major: String, yearOfStudy: String, bio: String, studyGoal: String) {
+        val user = _currentUser.value ?: return
+        viewModelScope.launch {
+            triggerSyncing()
+            val updated = user.copy(
+                name = name,
+                major = major,
+                yearOfStudy = yearOfStudy,
+                bio = bio,
+                studyGoal = studyGoal,
+                lastSyncedAt = System.currentTimeMillis()
+            )
+            repository.insertUser(updated)
+            _currentUser.value = updated
+            triggerSyncState()
+        }
+    }
+
+    fun changePassword(newPassword: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        val user = _currentUser.value
+        if (user == null) {
+            onError("You must be logged in to change your password.")
+            return
+        }
+        if (newPassword.isBlank()) {
+            onError("Password cannot be blank.")
+            return
+        }
+        viewModelScope.launch {
+            triggerSyncing()
+            val updated = user.copy(
+                passwordHash = newPassword,
+                lastSyncedAt = System.currentTimeMillis()
+            )
+            repository.insertUser(updated)
+            _currentUser.value = updated
+            triggerSyncState()
+            onSuccess()
+        }
     }
 
     // --- Visual Helper State Creators ---

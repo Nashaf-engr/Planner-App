@@ -2,6 +2,8 @@ package com.example.ui
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,13 +25,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -117,7 +122,7 @@ fun UniTaskNavigationBar(
         val items = listOf(
             NavigationItem("Dashboard", Icons.Default.Home, AppScreen.DASHBOARD),
             NavigationItem("Subjects", Icons.Default.List, AppScreen.SUBJECTS),
-            NavigationItem("Assessments", Icons.Default.Check, AppScreen.ASSESSMENTS),
+            NavigationItem("Tasks", Icons.Default.Check, AppScreen.ASSESSMENTS),
             NavigationItem("Notes", Icons.Default.Edit, AppScreen.NOTES),
             NavigationItem("Profile", Icons.Default.Person, AppScreen.PROFILE)
         )
@@ -210,6 +215,7 @@ fun SyncIndicatorRow(
 fun LoginScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -236,23 +242,24 @@ fun LoginScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
                 // App Logo View
                 Box(
                     modifier = Modifier
-                        .size(90.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(MaterialTheme.colorScheme.primary),
+                        .size(100.dp)
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Home,
+                    Image(
+                        painter = painterResource(id = com.example.R.drawable.ic_launcher_foreground),
                         contentDescription = "UniTask logo",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier
+                            .size(100.dp)
+                            .testTag("app_logo_image")
                     )
                 }
             }
 
             item {
                 Text(
-                    text = "UniTask Notes",
+                    text = "UniTask",
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.primary,
@@ -289,7 +296,19 @@ fun LoginScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
                     onValueChange = { password = it },
                     label = { Text("Password") },
                     leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Password") },
-                    visualTransformation = PasswordVisualTransformation(),
+                    trailingIcon = {
+                        Text(
+                            text = if (passwordVisible) "HIDE" else "SHOW",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .clickable { passwordVisible = !passwordVisible }
+                                .padding(end = 12.dp)
+                                .testTag("password_visibility_toggle")
+                        )
+                    },
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -322,7 +341,7 @@ fun LoginScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
                         viewModel.login(
                             email = email,
                             password = password,
-                            onSuccess = { onShowMessage("Welcome back to UniTask Notes!") },
+                            onSuccess = { onShowMessage("Welcome back to UniTask!") },
                             onError = { onShowMessage(it) }
                         )
                     },
@@ -336,59 +355,7 @@ fun LoginScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
                 }
             }
 
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    HorizontalDivider(modifier = Modifier.weight(1f))
-                    Text(
-                        text = " OR ",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
-                    HorizontalDivider(modifier = Modifier.weight(1f))
-                }
-            }
 
-            item {
-                OutlinedButton(
-                    onClick = {
-                        viewModel.loginWithGoogle(
-                            onSuccess = { onShowMessage("Logged in successfully with Google.") },
-                            onError = { onShowMessage(it) }
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .testTag("google_sign_in_button"),
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(20.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text(
-                                "G",
-                                color = Color.White,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.align(Alignment.Center)
-                            )
-                        }
-                        Text("Sign in with Google", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
 
             item {
                 Row(
@@ -396,7 +363,7 @@ fun LoginScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("New to UniTask Notes? ", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("New to UniTask? ", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         text = "Register",
                         color = MaterialTheme.colorScheme.primary,
@@ -571,13 +538,19 @@ fun DashboardScreen(
         sdf.format(java.util.Date())
     }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+    val isSyncingState by viewModel.isSyncing.collectAsStateWithLifecycle()
+
+    PullToRefreshContainer(
+        isRefreshing = isSyncingState,
+        onRefresh = { viewModel.manualSyncTrigger() }
     ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
         // App top Bento-style header
         item {
             Row(
@@ -641,18 +614,18 @@ fun DashboardScreen(
             )
         }
 
-        // 1. Featured Top Bento Card (TODAY'S TASK or STATUS CORE)
+        // 1. Featured Top Bento Card (TASKS COMPLETION RATE CARD)
         item {
-            val hasToday = todayAssessments.isNotEmpty()
-            val featuredTitle = if (hasToday) todayAssessments.first().title else "Data Structures Quiz"
-            val featuredSubjectText = if (hasToday) {
-                val sub = subjects.firstOrNull { it.subjectId == todayAssessments.first().subjectId }
-                "${sub?.subjectName ?: "Unknown Course"} • ${todayAssessments.first().dueTime}"
+            val totalCount = assessments.size
+            val completedCount = assessments.count { it.isCompleted }
+            val completedRatio = if (totalCount > 0) completedCount.toFloat() / totalCount else 0.0f
+            val percentLabel = "${(completedRatio * 100).toInt()}% COMPLETED"
+            val featuredTitle = if (totalCount == 0) "No Tasks Created" else if (completedCount == totalCount) "All Tasks Completed! 🎉" else "Track Your Semester"
+            val featuredSubjectText = if (totalCount == 0) {
+                "Add your course tasks on the Tasks tab"
             } else {
-                "Academic Calendar • caught up"
+                "$completedCount of $totalCount academic tasks finalized"
             }
-            val percentLabel = if (hasToday) "65% READY" else "100% DELEGATED"
-            val percentVal = if (hasToday) 0.65f else 1f
 
             Card(
                 shape = RoundedCornerShape(28.dp),
@@ -682,7 +655,7 @@ fun DashboardScreen(
                                 .padding(horizontal = 12.dp, vertical = 5.dp)
                         ) {
                             Text(
-                                text = "TODAY",
+                                text = "PERSISTENT TRACKING",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimary,
@@ -691,7 +664,7 @@ fun DashboardScreen(
                         }
                         Icon(
                             imageVector = Icons.Default.DateRange,
-                            contentDescription = "Today tasks",
+                            contentDescription = "Task completion",
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(22.dp)
                         )
@@ -729,10 +702,10 @@ fun DashboardScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxHeight()
-                                    .fillMaxWidth(percentVal)
+                                    .fillMaxWidth(completedRatio)
                                     .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.primary)
-                            )
+                             )
                         }
                         Text(
                             text = percentLabel,
@@ -1001,6 +974,7 @@ fun DashboardScreen(
         }
     }
 }
+}
 
 @Composable
 fun SectionHeader(title: String, icon: ImageVector) {
@@ -1024,16 +998,18 @@ fun DashboardAssessmentListItem(
 ) {
     val daysLeft = viewModel.calculateDaysRemaining(assessment.dueDate)
     val indicatorColor = when {
+        assessment.isCompleted -> Color(0xFF10B981)
         daysLeft < 0 -> Color(0xFFEF4444)
         daysLeft == 0L -> Color(0xFFEF4444)
         daysLeft == 1L -> Color(0xFFF59E0B)
         else -> Color(0xFF10B981)
     }
     val daysText = when {
+        assessment.isCompleted -> "Completed"
         daysLeft < 0 -> "Overdue"
         daysLeft == 0L -> "Due Today"
         daysLeft == 1L -> "Due Tomorrow"
-        else -> "$daysLeft days remaining"
+        else -> "$daysLeft d left"
     }
 
     Card(
@@ -1043,10 +1019,16 @@ fun DashboardAssessmentListItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            Checkbox(
+                checked = assessment.isCompleted,
+                onCheckedChange = { viewModel.toggleAssessmentCompleted(assessment) },
+                modifier = Modifier.testTag("dashboard_assessment_checkbox_${assessment.assessmentId.take(5)}")
+            )
+            Spacer(modifier = Modifier.width(6.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -1069,13 +1051,14 @@ fun DashboardAssessmentListItem(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = assessment.title,
-                    fontSize = 15.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = if (assessment.isCompleted) MaterialTheme.typography.titleMedium.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough) else MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "Deadline: ${viewModel.formatFriendlyDate(assessment.dueDate)} at ${assessment.dueTime}",
-                    fontSize = 11.sp,
+                    text = "Due: ${viewModel.formatFriendlyDate(assessment.dueDate)} at ${assessment.dueTime}",
+                    fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                 )
             }
@@ -1138,32 +1121,39 @@ fun SubjectsScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit)
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
-            if (subjects.isEmpty()) {
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline)
-                        Text("No subjects found. Create a subject using the button below.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, textAlign = TextAlign.Center)
+            val isSyncingState by viewModel.isSyncing.collectAsStateWithLifecycle()
+            PullToRefreshContainer(
+                isRefreshing = isSyncingState,
+                onRefresh = { viewModel.manualSyncTrigger() },
+                modifier = Modifier.weight(1f)
+            ) {
+                if (subjects.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline)
+                            Text("No subjects found. Create a subject using the button below.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, textAlign = TextAlign.Center)
+                        }
                     }
-                }
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(subjects) { subject ->
-                        SubjectCard(
-                            subject = subject,
-                            onEdit = {
-                                selectedSubjectForEdit = subject
-                                showEditDialog = true
-                            },
-                            onDelete = {
-                                viewModel.deleteSubject(subject)
-                                onShowMessage("Subject ${subject.subjectCode} deleted.")
-                            }
-                        )
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(subjects) { subject ->
+                            SubjectCard(
+                                subject = subject,
+                                onEdit = {
+                                    selectedSubjectForEdit = subject
+                                    showEditDialog = true
+                                },
+                                onDelete = {
+                                    viewModel.deleteSubject(subject)
+                                    onShowMessage("Subject ${subject.subjectCode} deleted.")
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -1458,7 +1448,7 @@ fun AssessmentsScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Un
                 .padding(16.dp)
         ) {
             Text(
-                text = "Assessments & Deadlines",
+                text = "Tasks & Deadlines",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.primary
@@ -1471,33 +1461,40 @@ fun AssessmentsScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Un
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
-            if (assessments.isEmpty()) {
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline)
-                        Text("No assessments due. Create one using the FAB button below.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, textAlign = TextAlign.Center)
+            val isSyncingState by viewModel.isSyncing.collectAsStateWithLifecycle()
+            PullToRefreshContainer(
+                isRefreshing = isSyncingState,
+                onRefresh = { viewModel.manualSyncTrigger() },
+                modifier = Modifier.weight(1f)
+            ) {
+                if (assessments.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline)
+                            Text("No tasks found. Create a task using the FAB button below.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, textAlign = TextAlign.Center)
+                        }
                     }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(assessments) { assessment ->
-                        val matchingSubject = subjects.firstOrNull { it.subjectId == assessment.subjectId }
-                        AssessmentCard(
-                            assessment = assessment,
-                            subject = matchingSubject,
-                            viewModel = viewModel,
-                            onEdit = {
-                                selectedAssessmentForEdit = assessment
-                                showEditDialog = true
-                            },
-                            onDelete = {
-                                viewModel.deleteAssessment(assessment)
-                                onShowMessage("Assessment ${assessment.title} deleted.")
-                            }
-                        )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(assessments) { assessment ->
+                            val matchingSubject = subjects.firstOrNull { it.subjectId == assessment.subjectId }
+                            AssessmentCard(
+                                assessment = assessment,
+                                subject = matchingSubject,
+                                viewModel = viewModel,
+                                onEdit = {
+                                    selectedAssessmentForEdit = assessment
+                                    showEditDialog = true
+                                },
+                                onDelete = {
+                                    viewModel.deleteAssessment(assessment)
+                                    onShowMessage("Task ${assessment.title} deleted.")
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -1599,28 +1596,118 @@ fun AssessmentsScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Un
                         }
                     }
 
-                    item {
+                     item {
+                        val context = LocalContext.current
                         OutlinedTextField(
                             value = dueDateStr,
-                            onValueChange = { dueDateStr = it },
-                            label = { Text("Due Date (YYYY-MM-DD)") },
-                            placeholder = { Text("2026-06-15") },
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Due Date") },
+                            placeholder = { Text("Tap to select date...") },
                             singleLine = true,
+                            trailingIcon = {
+                                IconButton(onClick = {
+                                    val calendar = java.util.Calendar.getInstance()
+                                    val ymd = dueDateStr.split("-")
+                                    if (ymd.size == 3) {
+                                        try {
+                                            calendar.set(java.util.Calendar.YEAR, ymd[0].toInt())
+                                            calendar.set(java.util.Calendar.MONTH, ymd[1].toInt() - 1)
+                                            calendar.set(java.util.Calendar.DAY_OF_MONTH, ymd[2].toInt())
+                                        } catch (_: Exception) {}
+                                    }
+                                    android.app.DatePickerDialog(
+                                        context,
+                                        { _, year, month, dayOfMonth ->
+                                            dueDateStr = String.format(java.util.Locale.US, "%04d-%02d-%02d", year, month + 1, dayOfMonth)
+                                        },
+                                        calendar.get(java.util.Calendar.YEAR),
+                                        calendar.get(java.util.Calendar.MONTH),
+                                        calendar.get(java.util.Calendar.DAY_OF_MONTH)
+                                    ).show()
+                                }) {
+                                    Icon(Icons.Default.DateRange, contentDescription = "Select Date")
+                                }
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clickable {
+                                    val calendar = java.util.Calendar.getInstance()
+                                    val ymd = dueDateStr.split("-")
+                                    if (ymd.size == 3) {
+                                        try {
+                                            calendar.set(java.util.Calendar.YEAR, ymd[0].toInt())
+                                            calendar.set(java.util.Calendar.MONTH, ymd[1].toInt() - 1)
+                                            calendar.set(java.util.Calendar.DAY_OF_MONTH, ymd[2].toInt())
+                                        } catch (_: Exception) {}
+                                    }
+                                    android.app.DatePickerDialog(
+                                        context,
+                                        { _, year, month, dayOfMonth ->
+                                            dueDateStr = String.format(java.util.Locale.US, "%04d-%02d-%02d", year, month + 1, dayOfMonth)
+                                        },
+                                        calendar.get(java.util.Calendar.YEAR),
+                                        calendar.get(java.util.Calendar.MONTH),
+                                        calendar.get(java.util.Calendar.DAY_OF_MONTH)
+                                    ).show()
+                                }
                                 .testTag("assessment_date_field")
                         )
                     }
 
                     item {
+                        val context = LocalContext.current
                         OutlinedTextField(
                             value = dueTimeStr,
-                            onValueChange = { dueTimeStr = it },
-                            label = { Text("Due Time (HH:MM)") },
-                            placeholder = { Text("14:00") },
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Due Time") },
+                            placeholder = { Text("Tap to select time...") },
                             singleLine = true,
+                            trailingIcon = {
+                                IconButton(onClick = {
+                                    val calendar = java.util.Calendar.getInstance()
+                                    val hm = dueTimeStr.split(":")
+                                    if (hm.size == 2) {
+                                        try {
+                                            calendar.set(java.util.Calendar.HOUR_OF_DAY, hm[0].toInt())
+                                            calendar.set(java.util.Calendar.MINUTE, hm[1].toInt())
+                                        } catch (_: Exception) {}
+                                    }
+                                    android.app.TimePickerDialog(
+                                        context,
+                                        { _, hourOfDay, minute ->
+                                            dueTimeStr = String.format(java.util.Locale.US, "%02d:%02d", hourOfDay, minute)
+                                        },
+                                        calendar.get(java.util.Calendar.HOUR_OF_DAY),
+                                        calendar.get(java.util.Calendar.MINUTE),
+                                        true
+                                    ).show()
+                                }) {
+                                    Icon(Icons.Default.PlayArrow, contentDescription = "Select Time")
+                                }
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clickable {
+                                    val calendar = java.util.Calendar.getInstance()
+                                    val hm = dueTimeStr.split(":")
+                                    if (hm.size == 2) {
+                                        try {
+                                            calendar.set(java.util.Calendar.HOUR_OF_DAY, hm[0].toInt())
+                                            calendar.set(java.util.Calendar.MINUTE, hm[1].toInt())
+                                        } catch (_: Exception) {}
+                                    }
+                                    android.app.TimePickerDialog(
+                                        context,
+                                        { _, hourOfDay, minute ->
+                                            dueTimeStr = String.format(java.util.Locale.US, "%02d:%02d", hourOfDay, minute)
+                                        },
+                                        calendar.get(java.util.Calendar.HOUR_OF_DAY),
+                                        calendar.get(java.util.Calendar.MINUTE),
+                                        true
+                                    ).show()
+                                }
                                 .testTag("assessment_time_field")
                         )
                     }
@@ -1732,26 +1819,118 @@ fun AssessmentsScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Un
                         }
                     }
 
-                    item {
+                     item {
+                        val context = LocalContext.current
                         OutlinedTextField(
                             value = dueDateStr,
-                            onValueChange = { dueDateStr = it },
-                            label = { Text("Due Date (YYYY-MM-DD)") },
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Due Date") },
+                            placeholder = { Text("Tap to select date...") },
                             singleLine = true,
+                            trailingIcon = {
+                                IconButton(onClick = {
+                                    val calendar = java.util.Calendar.getInstance()
+                                    val ymd = dueDateStr.split("-")
+                                    if (ymd.size == 3) {
+                                        try {
+                                            calendar.set(java.util.Calendar.YEAR, ymd[0].toInt())
+                                            calendar.set(java.util.Calendar.MONTH, ymd[1].toInt() - 1)
+                                            calendar.set(java.util.Calendar.DAY_OF_MONTH, ymd[2].toInt())
+                                        } catch (_: Exception) {}
+                                    }
+                                    android.app.DatePickerDialog(
+                                        context,
+                                        { _, year, month, dayOfMonth ->
+                                            dueDateStr = String.format(java.util.Locale.US, "%04d-%02d-%02d", year, month + 1, dayOfMonth)
+                                        },
+                                        calendar.get(java.util.Calendar.YEAR),
+                                        calendar.get(java.util.Calendar.MONTH),
+                                        calendar.get(java.util.Calendar.DAY_OF_MONTH)
+                                    ).show()
+                                }) {
+                                    Icon(Icons.Default.DateRange, contentDescription = "Select Date")
+                                }
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clickable {
+                                    val calendar = java.util.Calendar.getInstance()
+                                    val ymd = dueDateStr.split("-")
+                                    if (ymd.size == 3) {
+                                        try {
+                                            calendar.set(java.util.Calendar.YEAR, ymd[0].toInt())
+                                            calendar.set(java.util.Calendar.MONTH, ymd[1].toInt() - 1)
+                                            calendar.set(java.util.Calendar.DAY_OF_MONTH, ymd[2].toInt())
+                                        } catch (_: Exception) {}
+                                    }
+                                    android.app.DatePickerDialog(
+                                        context,
+                                        { _, year, month, dayOfMonth ->
+                                            dueDateStr = String.format(java.util.Locale.US, "%04d-%02d-%02d", year, month + 1, dayOfMonth)
+                                        },
+                                        calendar.get(java.util.Calendar.YEAR),
+                                        calendar.get(java.util.Calendar.MONTH),
+                                        calendar.get(java.util.Calendar.DAY_OF_MONTH)
+                                    ).show()
+                                }
                                 .testTag("edit_assessment_date_field")
                         )
                     }
 
                     item {
+                        val context = LocalContext.current
                         OutlinedTextField(
                             value = dueTimeStr,
-                            onValueChange = { dueTimeStr = it },
-                            label = { Text("Due Time (HH:MM)") },
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Due Time") },
+                            placeholder = { Text("Tap to select time...") },
                             singleLine = true,
+                            trailingIcon = {
+                                IconButton(onClick = {
+                                    val calendar = java.util.Calendar.getInstance()
+                                    val hm = dueTimeStr.split(":")
+                                    if (hm.size == 2) {
+                                        try {
+                                            calendar.set(java.util.Calendar.HOUR_OF_DAY, hm[0].toInt())
+                                            calendar.set(java.util.Calendar.MINUTE, hm[1].toInt())
+                                        } catch (_: Exception) {}
+                                    }
+                                    android.app.TimePickerDialog(
+                                        context,
+                                        { _, hourOfDay, minute ->
+                                            dueTimeStr = String.format(java.util.Locale.US, "%02d:%02d", hourOfDay, minute)
+                                        },
+                                        calendar.get(java.util.Calendar.HOUR_OF_DAY),
+                                        calendar.get(java.util.Calendar.MINUTE),
+                                        true
+                                    ).show()
+                                }) {
+                                    Icon(Icons.Default.PlayArrow, contentDescription = "Select Time")
+                                }
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clickable {
+                                    val calendar = java.util.Calendar.getInstance()
+                                    val hm = dueTimeStr.split(":")
+                                    if (hm.size == 2) {
+                                        try {
+                                            calendar.set(java.util.Calendar.HOUR_OF_DAY, hm[0].toInt())
+                                            calendar.set(java.util.Calendar.MINUTE, hm[1].toInt())
+                                        } catch (_: Exception) {}
+                                    }
+                                    android.app.TimePickerDialog(
+                                        context,
+                                        { _, hourOfDay, minute ->
+                                            dueTimeStr = String.format(java.util.Locale.US, "%02d:%02d", hourOfDay, minute)
+                                        },
+                                        calendar.get(java.util.Calendar.HOUR_OF_DAY),
+                                        calendar.get(java.util.Calendar.MINUTE),
+                                        true
+                                    ).show()
+                                }
                                 .testTag("edit_assessment_time_field")
                         )
                     }
@@ -1803,6 +1982,7 @@ fun AssessmentCard(
 ) {
     val daysLeft = viewModel.calculateDaysRemaining(assessment.dueDate)
     val cardColor = when {
+        assessment.isCompleted -> Color(0xFF10B981)
         daysLeft < 0 -> Color(0xFFEF4444)
         daysLeft == 0L -> Color(0xFFEF4444)
         daysLeft == 1L -> Color(0xFFF59E0B)
@@ -1810,6 +1990,7 @@ fun AssessmentCard(
     }
 
     val relativeText = when {
+        assessment.isCompleted -> "Completed"
         daysLeft < 0 -> "Overdue by ${-daysLeft} days"
         daysLeft == 0L -> "Due Today"
         daysLeft == 1L -> "Due Tomorrow"
@@ -1827,14 +2008,20 @@ fun AssessmentCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                Checkbox(
+                    checked = assessment.isCompleted,
+                    onCheckedChange = { viewModel.toggleAssessmentCompleted(assessment) },
+                    modifier = Modifier.testTag("assessment_card_checkbox_${assessment.assessmentId.take(5)}").padding(end = 6.dp)
+                )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         assessment.title,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = if (assessment.isCompleted) MaterialTheme.typography.titleMedium.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough) else MaterialTheme.typography.titleMedium
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     if (subject != null) {
@@ -1899,6 +2086,7 @@ fun AssessmentCard(
 @Composable
 fun NotesScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
     val notes by viewModel.notes.collectAsStateWithLifecycle()
+    val subjects by viewModel.subjects.collectAsStateWithLifecycle()
     var showAddDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var selectedNoteForEdit by remember { mutableStateOf<Note?>(null) }
@@ -1935,32 +2123,41 @@ fun NotesScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
-            if (notes.isEmpty()) {
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline)
-                        Text("No notes written yet. Tap the FAB to write notes.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, textAlign = TextAlign.Center)
+            val isSyncingState by viewModel.isSyncing.collectAsStateWithLifecycle()
+            PullToRefreshContainer(
+                isRefreshing = isSyncingState,
+                onRefresh = { viewModel.manualSyncTrigger() },
+                modifier = Modifier.weight(1f)
+            ) {
+                if (notes.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline)
+                            Text("No notes written yet. Tap the FAB to write notes.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, textAlign = TextAlign.Center)
+                        }
                     }
-                }
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(notes) { note ->
-                        NoteGridCard(
-                            note = note,
-                            onEdit = {
-                                selectedNoteForEdit = note
-                                showEditDialog = true
-                            },
-                            onDelete = {
-                                viewModel.deleteNote(note)
-                                onShowMessage("Note deleted successfully.")
-                            }
-                        )
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(notes) { note ->
+                            val matchingSubject = subjects.firstOrNull { it.subjectId == note.subjectId }
+                            NoteGridCard(
+                                note = note,
+                                subject = matchingSubject,
+                                onEdit = {
+                                    selectedNoteForEdit = note
+                                    showEditDialog = true
+                                },
+                                onDelete = {
+                                    viewModel.deleteNote(note)
+                                    onShowMessage("Note deleted successfully.")
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -1970,6 +2167,7 @@ fun NotesScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
     if (showAddDialog) {
         var title by remember { mutableStateOf("") }
         var content by remember { mutableStateOf("") }
+        var selectedSubjectId by remember { mutableStateOf<String?>(null) }
 
         Dialog(onDismissRequest = { showAddDialog = false }) {
             Card(
@@ -1979,50 +2177,85 @@ fun NotesScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
                     .padding(8.dp)
                     .testTag("add_note_dialog")
             ) {
-                Column(
+                LazyColumn(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Text("Create New Note", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        label = { Text("Note Title") },
-                        placeholder = { Text("Lab 4 Emojis 📝") },
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("note_title_field")
-                    )
-                    OutlinedTextField(
-                        value = content,
-                        onValueChange = { content = it },
-                        label = { Text("Content Notes") },
-                        minLines = 4,
-                        maxLines = 8,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("note_content_field")
-                    )
+                    item {
+                        Text("Create New Note", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                    item {
+                        OutlinedTextField(
+                            value = title,
+                            onValueChange = { title = it },
+                            label = { Text("Note Title") },
+                            placeholder = { Text("Lab 4 Emojis 📝") },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("note_title_field")
+                        )
+                    }
+                    item {
+                        OutlinedTextField(
+                            value = content,
+                            onValueChange = { content = it },
+                            label = { Text("Content Notes") },
+                            minLines = 4,
+                            maxLines = 8,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("note_content_field")
+                        )
+                    }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
-                    ) {
-                        TextButton(onClick = { showAddDialog = false }) { Text("Cancel") }
-                        Button(
-                            onClick = {
-                                if (title.isNotBlank()) {
-                                    viewModel.addNote(title, content)
-                                    showAddDialog = false
-                                    onShowMessage("Note saved and synced.")
-                                } else {
-                                    onShowMessage("Please specify a note title.")
+                    item {
+                        Text("Associate Subject (Optional)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            subjects.forEach { s ->
+                                val selected = s.subjectId == selectedSubjectId
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent)
+                                        .clickable { selectedSubjectId = if (selected) null else s.subjectId }
+                                        .padding(8.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(android.graphics.Color.parseColor(s.color)))
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(s.subjectName, fontSize = 13.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
                                 }
-                            },
-                            modifier = Modifier.testTag("save_note_button")
+                            }
+                        }
+                    }
+
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                         ) {
-                            Text("Save")
+                            TextButton(onClick = { showAddDialog = false }) { Text("Cancel") }
+                            Button(
+                                onClick = {
+                                    if (title.isNotBlank()) {
+                                        viewModel.addNote(title, content, selectedSubjectId)
+                                        showAddDialog = false
+                                        onShowMessage("Note saved and synced.")
+                                    } else {
+                                        onShowMessage("Please specify a note title.")
+                                    }
+                                },
+                                modifier = Modifier.testTag("save_note_button")
+                            ) {
+                                Text("Save")
+                            }
                         }
                     }
                 }
@@ -2034,6 +2267,7 @@ fun NotesScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
         val currentNote = selectedNoteForEdit!!
         var title by remember(currentNote) { mutableStateOf(currentNote.title) }
         var content by remember(currentNote) { mutableStateOf(currentNote.content) }
+        var selectedSubjectId by remember(currentNote) { mutableStateOf(currentNote.subjectId) }
 
         Dialog(onDismissRequest = { showEditDialog = false }) {
             Card(
@@ -2043,49 +2277,84 @@ fun NotesScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
                     .padding(8.dp)
                     .testTag("edit_note_dialog")
             ) {
-                Column(
+                LazyColumn(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Text("Modify Note", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        label = { Text("Note Title") },
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("edit_note_title_field")
-                    )
-                    OutlinedTextField(
-                        value = content,
-                        onValueChange = { content = it },
-                        label = { Text("Content Notes") },
-                        minLines = 4,
-                        maxLines = 8,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("edit_note_content_field")
-                    )
+                    item {
+                        Text("Modify Note", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                    item {
+                        OutlinedTextField(
+                            value = title,
+                            onValueChange = { title = it },
+                            label = { Text("Note Title") },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("edit_note_title_field")
+                        )
+                    }
+                    item {
+                        OutlinedTextField(
+                            value = content,
+                            onValueChange = { content = it },
+                            label = { Text("Content Notes") },
+                            minLines = 4,
+                            maxLines = 8,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("edit_note_content_field")
+                        )
+                    }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
-                    ) {
-                        TextButton(onClick = { showEditDialog = false }) { Text("Cancel") }
-                        Button(
-                            onClick = {
-                                if (title.isNotBlank()) {
-                                    viewModel.updateNote(currentNote, title, content)
-                                    showEditDialog = false
-                                    onShowMessage("Note updated details synchronized.")
-                                } else {
-                                    onShowMessage("Title can't be empty.")
+                    item {
+                        Text("Associate Subject", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            subjects.forEach { s ->
+                                val selected = s.subjectId == selectedSubjectId
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent)
+                                        .clickable { selectedSubjectId = if (selected) null else s.subjectId }
+                                        .padding(8.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(android.graphics.Color.parseColor(s.color)))
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(s.subjectName, fontSize = 13.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
                                 }
-                            },
-                            modifier = Modifier.testTag("update_note_button")
+                            }
+                        }
+                    }
+
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                         ) {
-                            Text("Update")
+                            TextButton(onClick = { showEditDialog = false }) { Text("Cancel") }
+                            Button(
+                                onClick = {
+                                    if (title.isNotBlank()) {
+                                        viewModel.updateNote(currentNote, title, content, selectedSubjectId)
+                                        showEditDialog = false
+                                        onShowMessage("Note updated details synchronized.")
+                                    } else {
+                                        onShowMessage("Title can't be empty.")
+                                    }
+                                },
+                                modifier = Modifier.testTag("update_note_button")
+                            ) {
+                                Text("Update")
+                            }
                         }
                     }
                 }
@@ -2097,6 +2366,7 @@ fun NotesScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
 @Composable
 fun NoteGridCard(
     note: Note,
+    subject: Subject? = null,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -2109,6 +2379,21 @@ fun NoteGridCard(
             .testTag("note_card_${note.title.lowercase().replace(" ", "_")}")
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
+            if (subject != null) {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(android.graphics.Color.parseColor(subject.color)).copy(alpha = 0.15f),
+                    modifier = Modifier.padding(bottom = 6.dp)
+                ) {
+                    Text(
+                        text = subject.subjectCode,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(android.graphics.Color.parseColor(subject.color)),
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
             Text(
                 note.title,
                 fontSize = 15.sp,
@@ -2148,6 +2433,8 @@ fun NoteGridCard(
 fun ProfileScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val reminderEmailSim by viewModel.reminderEmailSim.collectAsStateWithLifecycle()
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
 
     LazyColumn(
         modifier = Modifier
@@ -2209,6 +2496,153 @@ fun ProfileScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) 
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                         )
+                    }
+                }
+            }
+        }
+
+        item {
+            var name by remember(currentUser) { mutableStateOf(currentUser?.name ?: "") }
+            var major by remember(currentUser) { mutableStateOf(currentUser?.major ?: "") }
+            var yearOfStudy by remember(currentUser) { mutableStateOf(currentUser?.yearOfStudy ?: "") }
+            var bio by remember(currentUser) { mutableStateOf(currentUser?.bio ?: "") }
+            var studyGoal by remember(currentUser) { mutableStateOf(currentUser?.studyGoal ?: "") }
+
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth().testTag("student_details_card")
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        "Student Academic Details",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Student Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("profile_name_field")
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = major,
+                            onValueChange = { major = it },
+                            label = { Text("Major / Course") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f).testTag("profile_major_field")
+                        )
+                        OutlinedTextField(
+                            value = yearOfStudy,
+                            onValueChange = { yearOfStudy = it },
+                            label = { Text("Year of Study") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f).testTag("profile_year_field")
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = bio,
+                        onValueChange = { bio = it },
+                        label = { Text("Student Brief Bio / Tagline") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("profile_bio_field")
+                    )
+
+                    OutlinedTextField(
+                        value = studyGoal,
+                        onValueChange = { studyGoal = it },
+                        label = { Text("Personal Study Target Goal") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("profile_study_goal_field")
+                    )
+
+                    Button(
+                        onClick = {
+                            if (name.isNotBlank()) {
+                                viewModel.updateProfile(name, major, yearOfStudy, bio, studyGoal)
+                                onShowMessage("Profile details updated successfully!")
+                            } else {
+                                onShowMessage("Name remains a required field.")
+                            }
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth().testTag("save_profile_button")
+                    ) {
+                        Text("Save Profile Changes", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        item {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth().testTag("change_password_card")
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        "Change Password",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    OutlinedTextField(
+                        value = newPassword,
+                        onValueChange = { newPassword = it },
+                        label = { Text("New Password") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth().testTag("new_password_field")
+                    )
+
+                    OutlinedTextField(
+                        value = confirmPassword,
+                        onValueChange = { confirmPassword = it },
+                        label = { Text("Confirm New Password") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth().testTag("confirm_password_field")
+                    )
+
+                    Button(
+                        onClick = {
+                            if (newPassword.isBlank()) {
+                                onShowMessage("Please enter a new password.")
+                            } else if (newPassword != confirmPassword) {
+                                onShowMessage("Passwords do not match!")
+                            } else {
+                                viewModel.changePassword(
+                                    newPassword = newPassword,
+                                    onSuccess = {
+                                        newPassword = ""
+                                        confirmPassword = ""
+                                        onShowMessage("Password changed successfully!")
+                                    },
+                                    onError = { onShowMessage(it) }
+                                )
+                            }
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth().testTag("change_password_button")
+                    ) {
+                        Text("Update Password", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -2380,3 +2814,122 @@ fun ProfileScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) 
         }
     }
 }
+
+// --- GESTURE-BASED PULL-TO-REFRESH CONTAINER ---
+@Composable
+fun PullToRefreshContainer(
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    var dragOffset by remember { mutableStateOf(0f) }
+    val maxDrag = 350f
+    val refreshThreshold = 220f
+
+    val animatedOffset by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isRefreshing) refreshThreshold else dragOffset,
+        animationSpec = androidx.compose.animation.core.spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMedium)
+    )
+
+    LaunchedEffect(isRefreshing) {
+        if (!isRefreshing) {
+            dragOffset = 0f
+        }
+    }
+
+    val nestedScrollConnection = remember {
+        object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+            override fun onPreScroll(
+                available: androidx.compose.ui.geometry.Offset,
+                source: androidx.compose.ui.input.nestedscroll.NestedScrollSource
+            ): androidx.compose.ui.geometry.Offset {
+                return if (available.y < 0 && dragOffset > 0) {
+                    val prevOffset = dragOffset
+                    dragOffset = (dragOffset + available.y).coerceAtLeast(0f)
+                    androidx.compose.ui.geometry.Offset(0f, dragOffset - prevOffset)
+                } else {
+                    androidx.compose.ui.geometry.Offset.Zero
+                }
+            }
+
+            override fun onPostScroll(
+                consumed: androidx.compose.ui.geometry.Offset,
+                available: androidx.compose.ui.geometry.Offset,
+                source: androidx.compose.ui.input.nestedscroll.NestedScrollSource
+            ): androidx.compose.ui.geometry.Offset {
+                return if (available.y > 0) {
+                    val prevOffset = dragOffset
+                    dragOffset = (dragOffset + available.y * 0.45f).coerceAtMost(maxDrag)
+                    androidx.compose.ui.geometry.Offset(0f, dragOffset - prevOffset)
+                } else {
+                    androidx.compose.ui.geometry.Offset.Zero
+                }
+            }
+
+            override suspend fun onPreFling(available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
+                if (dragOffset >= refreshThreshold && !isRefreshing) {
+                    onRefresh()
+                }
+                dragOffset = 0f
+                return androidx.compose.ui.unit.Velocity.Zero
+            }
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .nestedScroll(nestedScrollConnection)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    translationY = animatedOffset
+                }
+        ) {
+            content()
+        }
+
+        if (animatedOffset > 0) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp)
+                    .graphicsLayer {
+                        translationY = (animatedOffset - 110f).coerceAtLeast(0f)
+                        alpha = (animatedOffset / refreshThreshold).coerceAtMost(1f)
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    shape = RoundedCornerShape(100.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = if (isRefreshing) "Syncing..." else "Pull more to sync",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
