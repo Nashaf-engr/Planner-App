@@ -2090,6 +2090,8 @@ fun NotesScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
     var showAddDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var selectedNoteForEdit by remember { mutableStateOf<Note?>(null) }
+    var showViewDialog by remember { mutableStateOf(false) }
+    var selectedNoteForView by remember { mutableStateOf<Note?>(null) }
 
     Scaffold(
         floatingActionButton = {
@@ -2148,6 +2150,10 @@ fun NotesScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
                             NoteGridCard(
                                 note = note,
                                 subject = matchingSubject,
+                                onClick = {
+                                    selectedNoteForView = note
+                                    showViewDialog = true
+                                },
                                 onEdit = {
                                     selectedNoteForEdit = note
                                     showEditDialog = true
@@ -2361,12 +2367,115 @@ fun NotesScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
             }
         }
     }
+
+    if (showViewDialog && selectedNoteForView != null) {
+        val note = selectedNoteForView!!
+        val matchingSubject = subjects.firstOrNull { it.subjectId == note.subjectId }
+        Dialog(onDismissRequest = { showViewDialog = false }) {
+            Card(
+                shape = RoundedCornerShape(28.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .testTag("view_note_dialog")
+            ) {
+                LazyColumn(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    item {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "View Note",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                            )
+                            if (matchingSubject != null) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color(android.graphics.Color.parseColor(matchingSubject.color)).copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        text = "${matchingSubject.subjectCode} - ${matchingSubject.subjectName}",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(android.graphics.Color.parseColor(matchingSubject.color)),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    item {
+                        Text(
+                            text = note.title,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    item {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                    }
+
+                    item {
+                        Text(
+                            text = note.content,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    item {
+                        val formattedDate = remember(note.lastUpdated) {
+                            try {
+                                val sdf = java.text.SimpleDateFormat("MMM dd, yyyy - hh:mm a", java.util.Locale.getDefault())
+                                sdf.format(java.util.Date(note.lastUpdated))
+                            } catch (e: Exception) {
+                                "Recently"
+                            }
+                        }
+                        Text(
+                            text = "Last updated: $formattedDate",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Button(
+                                onClick = { showViewDialog = false },
+                                modifier = Modifier.testTag("close_view_note_button")
+                            ) {
+                                Text("Close")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
 fun NoteGridCard(
     note: Note,
     subject: Subject? = null,
+    onClick: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -2376,6 +2485,7 @@ fun NoteGridCard(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
         modifier = Modifier
             .fillMaxWidth()
+            .clickable { onClick() }
             .testTag("note_card_${note.title.lowercase().replace(" ", "_")}")
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
