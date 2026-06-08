@@ -1,0 +1,6 @@
+{
+  "name": "UniTask Notes",
+  "description": "A modern, professional study companion for university students to manage subjects, track assessment deadlines, and take notes with dynamic real-time local sync.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
