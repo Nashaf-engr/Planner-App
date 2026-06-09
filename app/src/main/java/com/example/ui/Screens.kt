@@ -519,6 +519,7 @@ fun DashboardScreen(
     onShowMessage: (String) -> Unit
 ) {
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    var showAcademicDetailsDialog by remember { mutableStateOf(false) }
     val subjects by viewModel.subjects.collectAsStateWithLifecycle()
     val assessments by viewModel.assessments.collectAsStateWithLifecycle()
     val notes by viewModel.notes.collectAsStateWithLifecycle()
@@ -583,7 +584,9 @@ fun DashboardScreen(
                         .size(48.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primaryContainer)
-                        .border(1.5.dp, Color.White, CircleShape),
+                        .border(1.5.dp, Color.White, CircleShape)
+                        .clickable { showAcademicDetailsDialog = true }
+                        .testTag("dashboard_profile_logo"),
                     contentAlignment = Alignment.Center
                 ) {
                     val initials = remember(currentUser) {
@@ -718,29 +721,40 @@ fun DashboardScreen(
             }
         }
 
-        // 2. Twin Columns bento layout row (Deadlines on left, Subjects & Notes on right)
+        // 2. Tasks full-width and Subjects/Notes side-by-side bento layout
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            val nearestTask = remember(assessments) {
+                assessments
+                    .filter { !it.isCompleted }
+                    .minByOrNull { "${it.dueDate} ${it.dueTime}" }
+            }
+            val nearestTaskSubject = remember(nearestTask, subjects) {
+                subjects.firstOrNull { it.subjectId == nearestTask?.subjectId }
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("tasks_bento_full_width"),
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
             ) {
-                // LEFT COLUMN (Deadlines Tall Bento Box)
-                Card(
+                Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .testTag("deadlines_bento_tall"),
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.SpaceBetween
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
-                            // Icon header
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
                             Box(
                                 modifier = Modifier
                                     .size(38.dp)
@@ -750,57 +764,18 @@ fun DashboardScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Info,
-                                    contentDescription = "Deadlines",
+                                    contentDescription = "Tasks",
                                     tint = MaterialTheme.colorScheme.onSecondaryContainer,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
-                            Spacer(modifier = Modifier.height(10.dp))
                             Text(
-                                "Deadlines",
-                                fontSize = 15.sp,
+                                "Tasks",
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-
-                            Column(
-                                modifier = Modifier.padding(top = 10.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                if (upcomingAssessments.isEmpty()) {
-                                    Text(
-                                        "All caught up",
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                    )
-                                } else {
-                                    upcomingAssessments.take(2).forEach { ass ->
-                                        val daysRemaining = viewModel.calculateDaysRemaining(ass.dueDate)
-                                        val dayLabel = when {
-                                            daysRemaining == 1L -> "Tomorrow"
-                                            else -> "In $daysRemaining days"
-                                        }
-                                        Column {
-                                            Text(
-                                                text = dayLabel,
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (daysRemaining <= 2L) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            Text(
-                                                text = ass.title,
-                                                fontSize = 13.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
-                                    }
-                                }
-                            }
                         }
-
-                        Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
                             text = "VIEW ALL",
@@ -812,93 +787,172 @@ fun DashboardScreen(
                                 .padding(vertical = 4.dp)
                         )
                     }
-                }
 
-                // RIGHT COLUMN (Subjects Box & Notes Link Box stacked)
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Subjects Bento Box
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("subjects_bento_box"),
-                        shape = RoundedCornerShape(28.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        border = BorderStroke(1.dp, Color(0xFFE7E0EB))
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Column {
-                                Text(
-                                    "Subjects",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    "${subjects.size} Enrolled",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                                )
-                            }
-
-                            // Overlapping subject circles
-                            if (subjects.isNotEmpty()) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy((-8).dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(top = 4.dp)
-                                ) {
-                                    subjects.take(3).forEach { s ->
-                                        val sColor = try {
-                                            Color(android.graphics.Color.parseColor(s.color))
-                                        } catch (e: Exception) {
-                                            MaterialTheme.colorScheme.primary
-                                        }
-                                        Box(
-                                            modifier = Modifier
-                                                .size(24.dp)
-                                                .clip(CircleShape)
-                                                .background(sColor)
-                                                .border(1.5.dp, Color.White, CircleShape)
-                                        )
-                                    }
-                                }
-                            } else {
-                                Spacer(modifier = Modifier.height(24.dp))
-                            }
-                        }
-                    }
-
-                    // Notes Link Bento Box
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { viewModel.setScreen(AppScreen.NOTES) }
-                            .testTag("notes_bento_link"),
-                        shape = RoundedCornerShape(28.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                        border = BorderStroke(1.dp, Color(0xFFD0BCFF))
-                    ) {
+                    if (nearestTask != null) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 20.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = nearestTask.title,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                nearestTaskSubject?.let { sub ->
+                                    val sColor = try {
+                                        Color(android.graphics.Color.parseColor(sub.color))
+                                    } catch (e: Exception) {
+                                        MaterialTheme.colorScheme.primary
+                                    }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(10.dp)
+                                                .clip(CircleShape)
+                                                .background(sColor)
+                                        )
+                                        Text(
+                                            text = "${sub.subjectCode} - ${sub.subjectName}",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+
+                            val daysRemaining = viewModel.calculateDaysRemaining(nearestTask.dueDate)
+                            val (dayLabel, labelColor) = when {
+                                daysRemaining == 0L -> "Today" to MaterialTheme.colorScheme.error
+                                daysRemaining == 1L -> "Tomorrow" to MaterialTheme.colorScheme.error
+                                daysRemaining > 1L -> "In $daysRemaining days" to MaterialTheme.colorScheme.onSurfaceVariant
+                                else -> "Overdue" to MaterialTheme.colorScheme.error
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(labelColor.copy(alpha = 0.1f))
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = dayLabel,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = labelColor
+                                )
+                            }
+                        }
+                    } else {
+                        Text(
+                            "All tasks completed! 🎉",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // LEFT COLUMN (Subjects Bento Box)
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { viewModel.setScreen(AppScreen.SUBJECTS) }
+                        .testTag("subjects_bento_box"),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = BorderStroke(1.dp, Color(0xFFE7E0EB))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Column {
                             Text(
-                                "Notes",
+                                "Subjects",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            Text(
+                                "${subjects.size} Enrolled",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+
+                        // Overlapping subject circles
+                        if (subjects.isNotEmpty()) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy((-8).dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(top = 4.dp)
+                            ) {
+                                subjects.take(3).forEach { s ->
+                                    val sColor = try {
+                                        Color(android.graphics.Color.parseColor(s.color))
+                                    } catch (e: Exception) {
+                                        MaterialTheme.colorScheme.primary
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .clip(CircleShape)
+                                            .background(sColor)
+                                            .border(1.5.dp, Color.White, CircleShape)
+                                    )
+                                }
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.height(24.dp))
+                        }
+                    }
+                }
+
+                // RIGHT COLUMN (Notes bento link)
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { viewModel.setScreen(AppScreen.NOTES) }
+                        .testTag("notes_bento_link"),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                    border = BorderStroke(1.dp, Color(0xFFD0BCFF))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            "Notes",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(18.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
                             Box(
                                 modifier = Modifier
                                     .size(24.dp)
@@ -974,6 +1028,131 @@ fun DashboardScreen(
         }
     }
 }
+
+    if (showAcademicDetailsDialog) {
+        Dialog(onDismissRequest = { showAcademicDetailsDialog = false }) {
+            Card(
+                shape = RoundedCornerShape(28.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .testTag("dashboard_profile_view_dialog")
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(18.dp)
+                ) {
+                    Text(
+                        text = "Student Academic Details",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                    // Name
+                    Column {
+                        Text(
+                            text = "STUDENT NAME",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = currentUser?.name?.takeIf { it.isNotBlank() } ?: "Not provided",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    // Major & Year
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "MAJOR / COURSE",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = currentUser?.major?.takeIf { it.isNotBlank() } ?: "Not provided",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "YEAR OF STUDY",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = currentUser?.yearOfStudy?.takeIf { it.isNotBlank() } ?: "Not provided",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+
+                    // Bio
+                    Column {
+                        Text(
+                            text = "STUDENT BRIEF BIO / TAGLINE",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = currentUser?.bio?.takeIf { it.isNotBlank() } ?: "Not provided",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    // Goal
+                    Column {
+                        Text(
+                            text = "PERSONAL STUDY TARGET GOAL",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = currentUser?.studyGoal?.takeIf { it.isNotBlank() } ?: "Not provided",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Button(
+                            onClick = { showAcademicDetailsDialog = false },
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text("Close")
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -1112,11 +1291,6 @@ fun SubjectsScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit)
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "Define university courses and custom colored tiles",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
@@ -1452,11 +1626,6 @@ fun AssessmentsScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Un
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "Track your assignments, presentation schedules, labs, and mid exams",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
@@ -2117,11 +2286,6 @@ fun NotesScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.primary
             )
-            Text(
-                text = "Write plain text and emoji scribbles safely stored offline-first",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
@@ -2543,8 +2707,14 @@ fun NoteGridCard(
 fun ProfileScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val reminderEmailSim by viewModel.reminderEmailSim.collectAsStateWithLifecycle()
-    var newPassword by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
+
+    var showEditProfileDialog by remember { mutableStateOf(false) }
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
+
+    var showUpdateProfileConfirmation by remember { mutableStateOf(false) }
+    var showChangePasswordConfirmation by remember { mutableStateOf(false) }
+    var showDeleteAccountConfirmation by remember { mutableStateOf(false) }
+    var showLogoutConfirmation by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier
@@ -2558,11 +2728,6 @@ fun ProfileScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) 
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "Review Firestore database status, sync logs, and preferences",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
         }
@@ -2612,149 +2777,41 @@ fun ProfileScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) 
         }
 
         item {
-            var name by remember(currentUser) { mutableStateOf(currentUser?.name ?: "") }
-            var major by remember(currentUser) { mutableStateOf(currentUser?.major ?: "") }
-            var yearOfStudy by remember(currentUser) { mutableStateOf(currentUser?.yearOfStudy ?: "") }
-            var bio by remember(currentUser) { mutableStateOf(currentUser?.bio ?: "") }
-            var studyGoal by remember(currentUser) { mutableStateOf(currentUser?.studyGoal ?: "") }
-
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
-                modifier = Modifier.fillMaxWidth().testTag("student_details_card")
+            Button(
+                onClick = { showEditProfileDialog = true },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .testTag("edit_profile_button")
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        "Student Academic Details",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text("Student Name") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().testTag("profile_name_field")
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = major,
-                            onValueChange = { major = it },
-                            label = { Text("Major / Course") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f).testTag("profile_major_field")
-                        )
-                        OutlinedTextField(
-                            value = yearOfStudy,
-                            onValueChange = { yearOfStudy = it },
-                            label = { Text("Year of Study") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f).testTag("profile_year_field")
-                        )
-                    }
-
-                    OutlinedTextField(
-                        value = bio,
-                        onValueChange = { bio = it },
-                        label = { Text("Student Brief Bio / Tagline") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().testTag("profile_bio_field")
-                    )
-
-                    OutlinedTextField(
-                        value = studyGoal,
-                        onValueChange = { studyGoal = it },
-                        label = { Text("Personal Study Target Goal") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().testTag("profile_study_goal_field")
-                    )
-
-                    Button(
-                        onClick = {
-                            if (name.isNotBlank()) {
-                                viewModel.updateProfile(name, major, yearOfStudy, bio, studyGoal)
-                                onShowMessage("Profile details updated successfully!")
-                            } else {
-                                onShowMessage("Name remains a required field.")
-                            }
-                        },
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth().testTag("save_profile_button")
-                    ) {
-                        Text("Save Profile Changes", fontWeight = FontWeight.Bold)
-                    }
-                }
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Edit Profile Details", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
         }
 
         item {
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
-                modifier = Modifier.fillMaxWidth().testTag("change_password_card")
+            Button(
+                onClick = { showChangePasswordDialog = true },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .testTag("show_change_password_dialog_button")
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        "Change Password",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    OutlinedTextField(
-                        value = newPassword,
-                        onValueChange = { newPassword = it },
-                        label = { Text("New Password") },
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth().testTag("new_password_field")
-                    )
-
-                    OutlinedTextField(
-                        value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
-                        label = { Text("Confirm New Password") },
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth().testTag("confirm_password_field")
-                    )
-
-                    Button(
-                        onClick = {
-                            if (newPassword.isBlank()) {
-                                onShowMessage("Please enter a new password.")
-                            } else if (newPassword != confirmPassword) {
-                                onShowMessage("Passwords do not match!")
-                            } else {
-                                viewModel.changePassword(
-                                    newPassword = newPassword,
-                                    onSuccess = {
-                                        newPassword = ""
-                                        confirmPassword = ""
-                                        onShowMessage("Password changed successfully!")
-                                    },
-                                    onError = { onShowMessage(it) }
-                                )
-                            }
-                        },
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth().testTag("change_password_button")
-                    ) {
-                        Text("Update Password", fontWeight = FontWeight.Bold)
-                    }
-                }
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Change Password", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -2881,8 +2938,7 @@ fun ProfileScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) 
                     ) {
                         OutlinedButton(
                             onClick = {
-                                viewModel.logout()
-                                onShowMessage("Logged out successfully.")
+                                showLogoutConfirmation = true
                             },
                             modifier = Modifier
                                 .weight(1.5f)
@@ -2900,8 +2956,7 @@ fun ProfileScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) 
                         }
                         Button(
                             onClick = {
-                                viewModel.deleteAccount()
-                                onShowMessage("Your account has been permanently deleted.")
+                                showDeleteAccountConfirmation = true
                             },
                             modifier = Modifier
                                 .weight(2.5f)
@@ -2922,6 +2977,322 @@ fun ProfileScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) 
             }
             Spacer(modifier = Modifier.height(40.dp))
         }
+    }
+
+    if (showEditProfileDialog) {
+        var tempName by remember(currentUser) { mutableStateOf(currentUser?.name ?: "") }
+        var tempMajor by remember(currentUser) { mutableStateOf(currentUser?.major ?: "") }
+        var tempYearOfStudy by remember(currentUser) { mutableStateOf(currentUser?.yearOfStudy ?: "") }
+        var tempBio by remember(currentUser) { mutableStateOf(currentUser?.bio ?: "") }
+        var tempStudyGoal by remember(currentUser) { mutableStateOf(currentUser?.studyGoal ?: "") }
+
+        Dialog(onDismissRequest = { showEditProfileDialog = false }) {
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .testTag("edit_profile_dialog")
+            ) {
+                LazyColumn(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    item {
+                        Text(
+                            text = "Student Academic Details",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+
+                    item {
+                        OutlinedTextField(
+                            value = tempName,
+                            onValueChange = { tempName = it },
+                            label = { Text("Student Name") },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("profile_name_field")
+                        )
+                    }
+
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = tempMajor,
+                                onValueChange = { tempMajor = it },
+                                label = { Text("Major / Course") },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("profile_major_field")
+                            )
+                            OutlinedTextField(
+                                value = tempYearOfStudy,
+                                onValueChange = { tempYearOfStudy = it },
+                                label = { Text("Year of Study") },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("profile_year_field")
+                            )
+                        }
+                    }
+
+                    item {
+                        OutlinedTextField(
+                            value = tempBio,
+                            onValueChange = { tempBio = it },
+                            label = { Text("Student Brief Bio / Tagline") },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("profile_bio_field")
+                        )
+                    }
+
+                    item {
+                        OutlinedTextField(
+                            value = tempStudyGoal,
+                            onValueChange = { tempStudyGoal = it },
+                            label = { Text("Personal Study Target Goal") },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("profile_study_goal_field")
+                        )
+                    }
+
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { showEditProfileDialog = false },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Cancel")
+                            }
+
+                            Button(
+                                onClick = {
+                                    if (tempName.isNotBlank()) {
+                                        showUpdateProfileConfirmation = true
+                                    } else {
+                                        onShowMessage("Name remains a required field.")
+                                    }
+                                },
+                                modifier = Modifier
+                                    .weight(1.2f)
+                                    .testTag("save_profile_button")
+                            ) {
+                                Text("Save Changes", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (showUpdateProfileConfirmation) {
+            AlertDialog(
+                onDismissRequest = { showUpdateProfileConfirmation = false },
+                title = { Text("Confirm Update") },
+                text = { Text("Are you sure you want to update your student academic details?") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            viewModel.updateProfile(tempName, tempMajor, tempYearOfStudy, tempBio, tempStudyGoal)
+                            onShowMessage("Profile details updated successfully!")
+                            showUpdateProfileConfirmation = false
+                            showEditProfileDialog = false
+                        }
+                    ) {
+                        Text("Yes")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showUpdateProfileConfirmation = false }) {
+                        Text("No")
+                    }
+                }
+            )
+        }
+    }
+
+    if (showChangePasswordDialog) {
+        var tempNewPassword by remember { mutableStateOf("") }
+        var tempConfirmPassword by remember { mutableStateOf("") }
+
+        Dialog(onDismissRequest = { showChangePasswordDialog = false }) {
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .testTag("change_password_dialog")
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        "Change Password",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    OutlinedTextField(
+                        value = tempNewPassword,
+                        onValueChange = { tempNewPassword = it },
+                        label = { Text("New Password") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("new_password_field")
+                    )
+
+                    OutlinedTextField(
+                        value = tempConfirmPassword,
+                        onValueChange = { tempConfirmPassword = it },
+                        label = { Text("Confirm New Password") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("confirm_password_field")
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { showChangePasswordDialog = false },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Cancel")
+                        }
+
+                        Button(
+                            onClick = {
+                                if (tempNewPassword.isBlank()) {
+                                    onShowMessage("Please enter a new password.")
+                                } else if (tempNewPassword != tempConfirmPassword) {
+                                    onShowMessage("Passwords do not match!")
+                                } else if (tempNewPassword == (currentUser?.passwordHash ?: "")) {
+                                    onShowMessage("Enter new password")
+                                } else {
+                                    showChangePasswordConfirmation = true
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1.2f)
+                                .testTag("update_password_action_button")
+                        ) {
+                            Text("Update", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        if (showChangePasswordConfirmation) {
+            AlertDialog(
+                onDismissRequest = { showChangePasswordConfirmation = false },
+                title = { Text("Confirm Reset Password") },
+                text = { Text("Are you sure you want to change your password?") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            viewModel.changePassword(
+                                newPassword = tempNewPassword,
+                                onSuccess = {
+                                    showChangePasswordConfirmation = false
+                                    showChangePasswordDialog = false
+                                    onShowMessage("Password changed successfully!")
+                                },
+                                onError = {
+                                    showChangePasswordConfirmation = false
+                                    onShowMessage(it)
+                                }
+                            )
+                        }
+                    ) {
+                        Text("Yes")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showChangePasswordConfirmation = false }) {
+                        Text("No")
+                    }
+                }
+            )
+        }
+    }
+
+    if (showLogoutConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showLogoutConfirmation = false },
+            title = { Text("Confirm Sign Out") },
+            text = { Text("Are you sure you want to log out?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.logout()
+                        onShowMessage("Logged out successfully.")
+                        showLogoutConfirmation = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutConfirmation = false }) {
+                    Text("No")
+                }
+            }
+        )
+    }
+
+    if (showDeleteAccountConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAccountConfirmation = false },
+            title = { Text("Delete Account") },
+            text = { Text("Are you sure you want to permanently delete your account? This action cannot be undone.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteAccount()
+                        onShowMessage("Your account has been permanently deleted.")
+                        showDeleteAccountConfirmation = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteAccountConfirmation = false }) {
+                    Text("No")
+                }
+            }
+        )
     }
 }
 

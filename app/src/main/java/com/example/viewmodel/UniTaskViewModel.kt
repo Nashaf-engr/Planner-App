@@ -463,6 +463,10 @@ class UniTaskViewModel(application: Application) : AndroidViewModel(application)
             onError("Password cannot be blank.")
             return
         }
+        if (newPassword == user.passwordHash) {
+            onError("Enter new password")
+            return
+        }
         viewModelScope.launch {
             triggerSyncing()
             val updated = user.copy(
