@@ -2705,8 +2705,8 @@ fun NoteGridCard(
 // --- PROFILE SCREEN ---
 @Composable
 fun ProfileScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
+    val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
-    val reminderEmailSim by viewModel.reminderEmailSim.collectAsStateWithLifecycle()
 
     var showEditProfileDialog by remember { mutableStateOf(false) }
     var showChangePasswordDialog by remember { mutableStateOf(false) }
@@ -2818,101 +2818,48 @@ fun ProfileScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) 
         item {
             Card(
                 shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "Daily Email Reminders",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                "Automate daily Active Assessment updates via Cloud Functions service",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                            )
-                        }
-                        Switch(
-                            checked = currentUser?.remindersEnabled ?: true,
-                            onCheckedChange = {
-                                viewModel.toggleReminders(it)
-                                onShowMessage(if (it) "Cloud reminders enabled." else "Cloud reminders paused.")
-                            },
-                            modifier = Modifier.testTag("reminders_switch")
-                        )
-                    }
-
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        "Notification Testing System",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        "Test the notification system instantly. Clicking below will send a local notification with matched subject details if you have any uncompleted tasks.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Button(
-                        onClick = { viewModel.runEmailReminderSimulation() },
+                        onClick = {
+                            val intent = android.content.Intent(context, com.example.notification.TaskReminderReceiver::class.java).apply {
+                                action = com.example.notification.TaskReminderHelper.ACTION_REMIND
+                            }
+                            context.sendBroadcast(intent)
+                            onShowMessage("Immediate notification simulation triggered!")
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        shape = RoundedCornerShape(10.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .testTag("test_reminder_sim_btn"),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary
-                        ),
-                        shape = RoundedCornerShape(10.dp)
+                            .testTag("test_instant_notification_button")
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Text("Simulate Daily Email Dispatch", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-        }
-
-        if (reminderEmailSim != null) {
-            item {
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "Firebase Cloud functions logic output",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
                             )
-                            IconButton(onClick = { viewModel.clearEmailSimulation() }) {
-                                Icon(Icons.Default.Close, contentDescription = "Close log", modifier = Modifier.size(18.dp))
-                            }
-                        }
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color.Black.copy(alpha = 0.85f))
-                                .padding(12.dp)
-                        ) {
-                            Text(
-                                text = reminderEmailSim ?: "",
-                                color = Color(0xFF10B981),
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 11.sp,
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                            Text("Trigger Local Notification Now", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

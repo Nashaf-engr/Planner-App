@@ -66,10 +66,6 @@ class UniTaskViewModel(application: Application) : AndroidViewModel(application)
     var editingAssessment = mutableStateFlowOf<Assessment?>(null)
     var editingNote = mutableStateFlowOf<Note?>(null)
 
-    // Simulation response for Cloud Function assessment reminder emails
-    private val _reminderEmailSim = MutableStateFlow<String?>(null)
-    val reminderEmailSim: StateFlow<String?> = _reminderEmailSim.asStateFlow()
-
     init {
         val database = AppDatabase.getDatabase(application)
         repository = UniTaskRepository(database)
@@ -378,61 +374,6 @@ class UniTaskViewModel(application: Application) : AndroidViewModel(application)
             _isSyncing.value = false
             _syncStatus.value = "In Sync with Cloud Firestore"
         }
-    }
-
-    // --- Simulated Email Reminder Compiler ---
-    fun runEmailReminderSimulation() {
-        val user = _currentUser.value ?: return
-        if (!user.remindersEnabled) {
-            _reminderEmailSim.value = "SIMULATION FAILED\n\nDaily notifications are currently DISABLED in settings. Please toggle 'Daily Email Reminders' on under the profile screen to enable Daily Assessment Reminders via Firebase Cloud Functions."
-            return
-        }
-
-        viewModelScope.launch {
-            val activeAssessments = _assessments.value
-            if (activeAssessments.isEmpty()) {
-                _reminderEmailSim.value = "SYSTEM REPORT\n\nThere are no active assessments to report today. Once you add assessments, this triggers daily digests."
-            } else {
-                val sb = StringBuilder()
-                sb.append("FIREBASE CLOUD FUNCTIONS - EMAIL REMINDER SERVICE\n")
-                sb.append("Triggered: Daily assessment review event at 08:00 AM UTC\n")
-                sb.append("Recipient: ${user.email}\n")
-                sb.append("--------------------------------------------------\n\n")
-
-                activeAssessments.forEachIndexed { index, assessment ->
-                    val daysLeft = calculateDaysRemaining(assessment.dueDate)
-                    val isToday = daysLeft == 0L
-                    val isTomorrow = daysLeft == 1L
-                    val statusText = when {
-                        daysLeft < 0 -> "OVERDUE by ${-daysLeft} days"
-                        isToday -> "DUE TODAY"
-                        isTomorrow -> "DUE TOMORROW"
-                        else -> "$daysLeft days left"
-                    }
-
-                    // Match associated subject
-                    val matchingSubject = _subjects.value.firstOrNull { it.subjectId == assessment.subjectId }
-                    val subjName = matchingSubject?.subjectName ?: "Unknown Subject"
-                    val subjCode = matchingSubject?.subjectCode ?: "N/A"
-
-                    sb.append("EMAIL RECORD #${index + 1}\n")
-                    sb.append("Subject: Assessment Reminder\n")
-                    sb.append("Body:\n")
-                    sb.append("  Assessment: ${assessment.title}\n")
-                    sb.append("  Subject: $subjName\n")
-                    sb.append("  Course code: $subjCode\n")
-                    sb.append("  Deadline: ${formatFriendlyDate(assessment.dueDate)} at ${assessment.dueTime}\n")
-                    sb.append("  Remaining days: $statusText\n")
-                    sb.append("--------------------------------------------------\n\n")
-                }
-
-                _reminderEmailSim.value = sb.toString()
-            }
-        }
-    }
-
-    fun clearEmailSimulation() {
-        _reminderEmailSim.value = null
     }
 
     fun updateProfile(name: String, major: String, yearOfStudy: String, bio: String, studyGoal: String) {
