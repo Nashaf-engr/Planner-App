@@ -1,6 +1,7 @@
 package com.example.ui
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
@@ -23,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -53,57 +55,148 @@ fun MainAppContainer(viewModel: UniTaskViewModel) {
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val syncStatus by viewModel.syncStatus.collectAsStateWithLifecycle()
     val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
+    val isDarkTheme by viewModel.isDarkMode.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = {
-            if (currentUser != null && currentScreen != AppScreen.LOGIN && currentScreen != AppScreen.REGISTER) {
-                UniTaskNavigationBar(
-                    currentScreen = currentScreen,
-                    onNavigate = { viewModel.setScreen(it) }
-                )
-            }
-        }
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(top = paddingValues.calculateTopPadding(), bottom = 0.dp)
+                .drawBehind {
+                    // Render premium fluid background linear values
+                    val isDark = isDarkTheme
+                    val bgBrush = if (isDark) {
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFF030712), // Obsidian deep base
+                                Color(0xFF070E22), // Blued space
+                                Color(0xFF02040A)  // Dark slate base
+                            )
+                        )
+                    } else {
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFFF3F7FD), // Polar liquid ice base
+                                Color(0xFFE2EDFC), // Translucent cobalt frosting
+                                Color(0xFFF8FAFC)  // Clean white-silver base
+                            )
+                        )
+                    }
+                    drawRect(brush = bgBrush)
+
+                    if (isDark) {
+                        // Drawing massive radiant liquid cobalt space orbs
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(Color(0x3A3B82F6), Color.Transparent),
+                                center = androidx.compose.ui.geometry.Offset(size.width * 0.15f, size.height * 0.25f),
+                                radius = size.width * 0.85f
+                            ),
+                            center = androidx.compose.ui.geometry.Offset(size.width * 0.15f, size.height * 0.25f),
+                            radius = size.width * 0.85f
+                        )
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(Color(0x2806B6D4), Color.Transparent),
+                                center = androidx.compose.ui.geometry.Offset(size.width * 0.85f, size.height * 0.75f),
+                                radius = size.width * 0.95f
+                            ),
+                            center = androidx.compose.ui.geometry.Offset(size.width * 0.85f, size.height * 0.75f),
+                            radius = size.width * 0.95f
+                        )
+                        // Extra violet neon touch
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(Color(0x1B8B5CF6), Color.Transparent),
+                                center = androidx.compose.ui.geometry.Offset(size.width * 0.5f, size.height * 0.5f),
+                                radius = size.width * 0.5f
+                            ),
+                            center = androidx.compose.ui.geometry.Offset(size.width * 0.5f, size.height * 0.5f),
+                            radius = size.width * 0.5f
+                        )
+                    } else {
+                        // Frost glow circles
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(Color(0x1A3B82F6), Color.Transparent),
+                                center = androidx.compose.ui.geometry.Offset(size.width * 0.15f, size.height * 0.2f),
+                                radius = size.width * 0.75f
+                            ),
+                            center = androidx.compose.ui.geometry.Offset(size.width * 0.15f, size.height * 0.2f),
+                            radius = size.width * 0.75f
+                        )
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(Color(0x1206B6D4), Color.Transparent),
+                                center = androidx.compose.ui.geometry.Offset(size.width * 0.85f, size.height * 0.8f),
+                                radius = size.width * 0.85f
+                            ),
+                            center = androidx.compose.ui.geometry.Offset(size.width * 0.85f, size.height * 0.8f),
+                            radius = size.width * 0.85f
+                        )
+                    }
+                }
         ) {
-            when (currentScreen) {
-                AppScreen.LOGIN -> LoginScreen(
-                    viewModel = viewModel,
-                    onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
-                )
-                AppScreen.REGISTER -> RegisterScreen(
-                    viewModel = viewModel,
-                    onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
-                )
-                AppScreen.DASHBOARD -> DashboardScreen(
-                    viewModel = viewModel,
-                    syncStatus = syncStatus,
-                    isSyncing = isSyncing,
-                    onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
-                )
-                AppScreen.SUBJECTS -> SubjectsScreen(
-                    viewModel = viewModel,
-                    onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
-                )
-                AppScreen.ASSESSMENTS -> AssessmentsScreen(
-                    viewModel = viewModel,
-                    onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
-                )
-                AppScreen.NOTES -> NotesScreen(
-                    viewModel = viewModel,
-                    onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
-                )
-                AppScreen.PROFILE -> ProfileScreen(
-                    viewModel = viewModel,
-                    onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
-                )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                Crossfade(
+                    targetState = currentScreen,
+                    animationSpec = tween(350),
+                    label = "screen_fade"
+                ) { screen ->
+                    when (screen) {
+                        AppScreen.LOGIN -> LoginScreen(
+                            viewModel = viewModel,
+                            onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
+                        )
+                        AppScreen.REGISTER -> RegisterScreen(
+                            viewModel = viewModel,
+                            onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
+                        )
+                        AppScreen.DASHBOARD -> DashboardScreen(
+                            viewModel = viewModel,
+                            syncStatus = syncStatus,
+                            isSyncing = isSyncing,
+                            onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
+                        )
+                        AppScreen.SUBJECTS -> SubjectsScreen(
+                            viewModel = viewModel,
+                            onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
+                        )
+                        AppScreen.ASSESSMENTS -> AssessmentsScreen(
+                            viewModel = viewModel,
+                            onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
+                        )
+                        AppScreen.NOTES -> NotesScreen(
+                            viewModel = viewModel,
+                            onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
+                        )
+                        AppScreen.PROFILE -> ProfileScreen(
+                            viewModel = viewModel,
+                            onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
+                        )
+                    }
+                }
+            }
+
+            if (currentUser != null && currentScreen != AppScreen.LOGIN && currentScreen != AppScreen.REGISTER) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                ) {
+                    UniTaskNavigationBar(
+                        currentScreen = currentScreen,
+                        onNavigate = { viewModel.setScreen(it) }
+                    )
+                }
             }
         }
     }
@@ -115,32 +208,62 @@ fun UniTaskNavigationBar(
     currentScreen: AppScreen,
     onNavigate: (AppScreen) -> Unit
 ) {
-    NavigationBar(
-        tonalElevation = 8.dp,
-        modifier = Modifier.testTag("app_navigation_bar")
-    ) {
-        val items = listOf(
-            NavigationItem("Dashboard", Icons.Default.Home, AppScreen.DASHBOARD),
-            NavigationItem("Subjects", Icons.Default.List, AppScreen.SUBJECTS),
-            NavigationItem("Tasks", Icons.Default.Check, AppScreen.ASSESSMENTS),
-            NavigationItem("Notes", Icons.Default.Edit, AppScreen.NOTES),
-            NavigationItem("Profile", Icons.Default.Person, AppScreen.PROFILE)
-        )
-
-        items.forEach { item ->
-            val selected = currentScreen == item.screen
-            NavigationBarItem(
-                selected = selected,
-                onClick = { onNavigate(item.screen) },
-                icon = {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = item.label
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
                     )
-                },
-                label = { Text(item.label, fontSize = 11.sp, fontWeight = FontWeight.Medium) },
-                modifier = Modifier.testTag("nav_tab_${item.label.lowercase()}")
+                )
             )
+            .drawBehind {
+                drawLine(
+                    color = Color.White.copy(alpha = 0.15f),
+                    start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                    end = androidx.compose.ui.geometry.Offset(size.width, 0f),
+                    strokeWidth = 1f
+                )
+            }
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .testTag("app_navigation_bar")
+    ) {
+        NavigationBar(
+            containerColor = Color.Transparent,
+            tonalElevation = 0.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+        ) {
+            val items = listOf(
+                NavigationItem("Dashboard", Icons.Default.Home, AppScreen.DASHBOARD),
+                NavigationItem("Subjects", Icons.Default.List, AppScreen.SUBJECTS),
+                NavigationItem("Tasks", Icons.Default.Check, AppScreen.ASSESSMENTS),
+                NavigationItem("Notes", Icons.Default.Edit, AppScreen.NOTES),
+                NavigationItem("Profile", Icons.Default.Person, AppScreen.PROFILE)
+            )
+
+            items.forEach { item ->
+                val selected = currentScreen == item.screen
+                NavigationBarItem(
+                    selected = selected,
+                    onClick = { onNavigate(item.screen) },
+                    icon = {
+                        Icon(
+                            imageVector = item.icon,
+                            contentDescription = item.label,
+                            tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                    ),
+                    modifier = Modifier.testTag("nav_tab_${item.label.lowercase()}")
+                )
+            }
         }
     }
 }
@@ -549,7 +672,8 @@ fun DashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(16.dp),
+                .padding(horizontal = 16.dp),
+            contentPadding = PaddingValues(top = 16.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
         // App top Bento-style header
@@ -872,25 +996,39 @@ fun DashboardScreen(
                 Card(
                     modifier = Modifier
                         .weight(1f)
+                        .height(148.dp)
                         .clickable { viewModel.setScreen(AppScreen.SUBJECTS) }
                         .testTag("subjects_bento_box"),
                     shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    border = BorderStroke(1.dp, Color(0xFFE7E0EB))
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                 ) {
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .fillMaxSize()
                             .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
-                            Text(
-                                "Subjects",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "Subjects",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.List,
+                                    contentDescription = "Subjects",
+                                    tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 "${subjects.size} Enrolled",
                                 fontSize = 12.sp,
@@ -902,10 +1040,9 @@ fun DashboardScreen(
                         if (subjects.isNotEmpty()) {
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy((-8).dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(top = 4.dp)
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                subjects.take(3).forEach { s ->
+                                subjects.take(4).forEach { s ->
                                     val sColor = try {
                                         Color(android.graphics.Color.parseColor(s.color))
                                     } catch (e: Exception) {
@@ -916,12 +1053,16 @@ fun DashboardScreen(
                                             .size(24.dp)
                                             .clip(CircleShape)
                                             .background(sColor)
-                                            .border(1.5.dp, Color.White, CircleShape)
+                                            .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape)
                                     )
                                 }
                             }
                         } else {
-                            Spacer(modifier = Modifier.height(24.dp))
+                            Text(
+                                "No subjects added",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
                         }
                     }
                 }
@@ -930,25 +1071,66 @@ fun DashboardScreen(
                 Card(
                     modifier = Modifier
                         .weight(1f)
+                        .height(148.dp)
                         .clickable { viewModel.setScreen(AppScreen.NOTES) }
                         .testTag("notes_bento_link"),
                     shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                    border = BorderStroke(1.dp, Color(0xFFD0BCFF))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                 ) {
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .fillMaxSize()
                             .padding(16.dp),
                         verticalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            "Notes",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                        Spacer(modifier = Modifier.height(18.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "Notes",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Notes",
+                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            if (mostRecentNote != null) {
+                                Text(
+                                    text = mostRecentNote.title,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = mostRecentNote.content,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    lineHeight = 14.sp
+                                )
+                            } else {
+                                Text(
+                                    "No notes yet. Tap to draft one!",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                    maxLines = 3,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.End
@@ -957,13 +1139,13 @@ fun DashboardScreen(
                                 modifier = Modifier
                                     .size(24.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.onSecondaryContainer),
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Add,
                                     contentDescription = "Go Notes",
-                                    tint = MaterialTheme.colorScheme.secondaryContainer,
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(12.dp)
                                 )
                             }
@@ -1274,7 +1456,9 @@ fun SubjectsScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit)
                 onClick = { showAddDialog = true },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.testTag("add_subject_fab")
+                modifier = Modifier
+                    .padding(bottom = 80.dp)
+                    .testTag("add_subject_fab")
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Subject")
             }
@@ -1312,6 +1496,7 @@ fun SubjectsScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit)
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
                         modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 96.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
@@ -1609,7 +1794,9 @@ fun AssessmentsScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Un
                 },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.testTag("add_assessment_fab")
+                modifier = Modifier
+                    .padding(bottom = 80.dp)
+                    .testTag("add_assessment_fab")
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Assessment")
             }
@@ -1646,6 +1833,7 @@ fun AssessmentsScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Un
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 96.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(assessments) { assessment ->
@@ -2160,90 +2348,148 @@ fun AssessmentCard(
 
     val relativeText = when {
         assessment.isCompleted -> "Completed"
-        daysLeft < 0 -> "Overdue by ${-daysLeft} days"
-        daysLeft == 0L -> "Due Today"
-        daysLeft == 1L -> "Due Tomorrow"
-        else -> "$daysLeft days remaining"
+        daysLeft < 0 -> "Overdue (${-daysLeft}d)"
+        daysLeft == 0L -> "Today"
+        daysLeft == 1L -> "Tomorrow"
+        else -> "${daysLeft}d left"
     }
 
     Card(
-        shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
         modifier = Modifier
             .fillMaxWidth()
             .testTag("assessment_card_${assessment.title.lowercase().replace(" ", "_")}")
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Checkbox(
+                checked = assessment.isCompleted,
+                onCheckedChange = { viewModel.toggleAssessmentCompleted(assessment) },
+                modifier = Modifier
+                    .size(40.dp)
+                    .testTag("assessment_card_checkbox_${assessment.assessmentId.take(5)}")
+            )
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                Checkbox(
-                    checked = assessment.isCompleted,
-                    onCheckedChange = { viewModel.toggleAssessmentCompleted(assessment) },
-                    modifier = Modifier.testTag("assessment_card_checkbox_${assessment.assessmentId.take(5)}").padding(end = 6.dp)
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        assessment.title,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        style = if (assessment.isCompleted) MaterialTheme.typography.titleMedium.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough) else MaterialTheme.typography.titleMedium
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
+                // Topic Subject badge & Title Row
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     if (subject != null) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color(android.graphics.Color.parseColor(subject.color)).copy(alpha = 0.15f)
+                        val subColor = try {
+                            Color(android.graphics.Color.parseColor(subject.color))
+                        } catch (e: Exception) {
+                            MaterialTheme.colorScheme.primary
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(subColor.copy(alpha = 0.15f))
+                                .padding(horizontal = 6.dp, vertical = 1.5.dp)
                         ) {
                             Text(
-                                text = "${subject.subjectCode} - ${subject.subjectName}",
-                                fontSize = 11.sp,
+                                text = subject.subjectCode,
+                                fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(android.graphics.Color.parseColor(subject.color)),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                color = subColor
                             )
                         }
                     }
-                }
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(cardColor.copy(alpha = 0.15f))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(relativeText, fontSize = 11.sp, color = cardColor, fontWeight = FontWeight.Bold)
-                }
-            }
 
-            if (assessment.description.isNotBlank()) {
-                Text(
-                    assessment.description,
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 10.dp)
-                )
-            }
+                    Text(
+                        text = assessment.title,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = if (assessment.isCompleted) {
+                            MaterialTheme.typography.bodyMedium.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough)
+                        } else {
+                            MaterialTheme.typography.bodyMedium
+                        }
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(14.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+                // Friendly deadline date
                 Text(
                     text = "Due: ${viewModel.formatFriendlyDate(assessment.dueDate)} @ ${assessment.dueTime}",
                     fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    IconButton(onClick = onEdit, modifier = Modifier.size(32.dp).testTag("assessment_edit_button")) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), modifier = Modifier.size(16.dp))
+
+                if (assessment.description.isNotBlank()) {
+                    Text(
+                        text = assessment.description,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            // Right side state & action controls column
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // Due relative status tag
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(cardColor.copy(alpha = 0.12f))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = relativeText.uppercase(),
+                        fontSize = 9.sp,
+                        color = cardColor,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
+
+                // Edit & Delete row
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onEdit,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .testTag("assessment_edit_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit",
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            modifier = Modifier.size(13.dp)
+                        )
                     }
-                    IconButton(onClick = onDelete, modifier = Modifier.size(32.dp).testTag("assessment_delete_button")) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .testTag("assessment_delete_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = Color(0xFFEF4444).copy(alpha = 0.8f),
+                            modifier = Modifier.size(13.dp)
+                        )
                     }
                 }
             }
@@ -2268,7 +2514,9 @@ fun NotesScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
                 onClick = { showAddDialog = true },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.testTag("add_note_fab")
+                modifier = Modifier
+                    .padding(bottom = 80.dp)
+                    .testTag("add_note_fab")
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Note")
             }
@@ -2306,6 +2554,7 @@ fun NotesScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
                         modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 96.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
@@ -2719,7 +2968,8 @@ fun ProfileScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(top = 16.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
@@ -2812,6 +3062,69 @@ fun ProfileScreen(viewModel: UniTaskViewModel, onShowMessage: (String) -> Unit) 
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Change Password", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        item {
+            val isDark by viewModel.isDarkMode.collectAsStateWithLifecycle()
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                modifier = Modifier.fillMaxWidth().testTag("theme_switch_card")
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Theme",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                "App Theme Mode",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = if (isDark) "Switch to Light Mode" else "Switch to Dark Mode",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Switch(
+                        checked = isDark,
+                        onCheckedChange = {
+                            viewModel.toggleDarkMode()
+                            onShowMessage(if (!isDark) "Switched to Dark Cobalt theme!" else "Switched to Light Ice theme!")
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                        ),
+                        modifier = Modifier.testTag("theme_toggle_switch")
+                    )
+                }
             }
         }
 

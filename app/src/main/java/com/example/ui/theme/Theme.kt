@@ -13,47 +13,52 @@ import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme =
   darkColorScheme(
-    primary = BentoLavender,
-    onPrimary = BentoLavenderText,
-    primaryContainer = BentoNavy,
-    onPrimaryContainer = BentoLightBlue,
-    secondary = BentoPurple,
-    onSecondary = BentoPurpleText,
-    tertiary = Purple80,
-    background = Color(0xFF111318),
-    surface = Color(0xFF1A1C1E),
-    onBackground = Color(0xFFE2E2E6),
-    onSurface = Color(0xFFE2E2E6)
+    primary = LiquidCobalt,
+    onPrimary = LiquidCobaltText,
+    primaryContainer = LiquidNavy,
+    onPrimaryContainer = LiquidLightBlue,
+    secondary = LiquidAqua,
+    onSecondary = LiquidAquaText,
+    secondaryContainer = Color(0xFF1E293B),
+    onSecondaryContainer = LiquidLightBlue,
+    tertiary = LiquidViolet,
+    onTertiary = LiquidVioletText,
+    background = LiquidDeepBg,
+    onBackground = Color(0xFFF3F4F6),
+    surface = GlassSurfaceDark,
+    onSurface = Color(0xFFF3F4F6),
+    surfaceVariant = Color(0xFF1E293B),
+    onSurfaceVariant = Color(0xFF94A3B8),
+    outline = GlassBorderDark,
+    error = ModernRed
   )
 
 private val LightColorScheme =
   lightColorScheme(
-    primary = BentoNavy,
+    primary = LiquidCobalt,
     onPrimary = Color.White,
-    primaryContainer = BentoLightBlue,
-    onPrimaryContainer = BentoNavy,
-    secondary = BentoLavenderText,
+    primaryContainer = LiquidLightBlue,
+    onPrimaryContainer = LiquidNavy,
+    secondary = LiquidAqua,
     onSecondary = Color.White,
-    secondaryContainer = BentoLavender,
-    onSecondaryContainer = BentoLavenderText,
-    tertiary = Color(0xFF6750A4),
+    secondaryContainer = Color(0xFFE2E8F0),
+    onSecondaryContainer = Color(0xFF0F172A),
+    tertiary = LiquidViolet,
     onTertiary = Color.White,
-    tertiaryContainer = BentoPurple,
-    onTertiaryContainer = BentoPurpleText,
-    background = BentoBg,
-    onBackground = Color(0xFF1A1C1E),
-    surface = Color.White,
-    onSurface = Color(0xFF1A1C1E),
-    surfaceVariant = BentoPurple,
-    onSurfaceVariant = BentoGrayText,
-    outline = BentoGrayBorder,
-    error = BentoRed
+    background = LiquidIceBg,
+    onBackground = Color(0xFF0F172A),
+    surface = GlassSurfaceLight,
+    onSurface = Color(0xFF0F172A),
+    surfaceVariant = Color(0xFFEDF2F7),
+    onSurfaceVariant = Color(0xFF4A5568),
+    outline = GlassBorderLight,
+    error = ModernRed
   )
 
 @Composable
 fun MyApplicationTheme(
   darkTheme: Boolean = isSystemInDarkTheme(),
-  // Disable dynamicColor to guarantee that the brand's beautiful Bento color scheme is rendered
+  // Disable dynamicColor to guarantee that our premium Liquid Glass color scheme is fully rendered
   dynamicColor: Boolean = false,
   content: @Composable () -> Unit,
 ) {
