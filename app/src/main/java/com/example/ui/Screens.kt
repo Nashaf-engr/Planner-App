@@ -23,6 +23,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
@@ -43,6 +44,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.activity.compose.BackHandler
+import kotlinx.coroutines.delay
 import com.example.data.*
 import com.example.viewmodel.AppScreen
 import com.example.viewmodel.UniTaskViewModel
@@ -60,8 +63,28 @@ fun MainAppContainer(viewModel: UniTaskViewModel) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
+    // Handle return navigation: go back to Dashboard, then exit on 2nd back tap
+    if (currentUser != null && currentScreen != AppScreen.LOGIN && currentScreen != AppScreen.REGISTER && currentScreen != AppScreen.DASHBOARD) {
+        BackHandler {
+            viewModel.setScreen(AppScreen.DASHBOARD)
+        }
+    }
+
+    // Top-aligned quick notification presenter (2 seconds with immediate replacement support)
+    val showNotification: (String) -> Unit = { msg ->
+        coroutineScope.launch {
+            snackbarHostState.currentSnackbarData?.dismiss()
+            val job = launch {
+                snackbarHostState.showSnackbar(msg)
+            }
+            delay(2000)
+            job.cancel()
+            snackbarHostState.currentSnackbarData?.dismiss()
+        }
+    }
+
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = {} // Leaving empty to avoid bottom bars/Scaffold blocking
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -154,33 +177,33 @@ fun MainAppContainer(viewModel: UniTaskViewModel) {
                     when (screen) {
                         AppScreen.LOGIN -> LoginScreen(
                             viewModel = viewModel,
-                            onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
+                            onShowMessage = showNotification
                         )
                         AppScreen.REGISTER -> RegisterScreen(
                             viewModel = viewModel,
-                            onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
+                            onShowMessage = showNotification
                         )
                         AppScreen.DASHBOARD -> DashboardScreen(
                             viewModel = viewModel,
                             syncStatus = syncStatus,
                             isSyncing = isSyncing,
-                            onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
+                            onShowMessage = showNotification
                         )
                         AppScreen.SUBJECTS -> SubjectsScreen(
                             viewModel = viewModel,
-                            onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
+                            onShowMessage = showNotification
                         )
                         AppScreen.ASSESSMENTS -> AssessmentsScreen(
                             viewModel = viewModel,
-                            onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
+                            onShowMessage = showNotification
                         )
                         AppScreen.NOTES -> NotesScreen(
                             viewModel = viewModel,
-                            onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
+                            onShowMessage = showNotification
                         )
                         AppScreen.PROFILE -> ProfileScreen(
                             viewModel = viewModel,
-                            onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
+                            onShowMessage = showNotification
                         )
                     }
                 }
@@ -196,6 +219,49 @@ fun MainAppContainer(viewModel: UniTaskViewModel) {
                         currentScreen = currentScreen,
                         onNavigate = { viewModel.setScreen(it) }
                     )
+                }
+            }
+
+            // Beautiful custom top-floating notification toast
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 16.dp, start = 16.dp, end = 16.dp)
+                    .zIndex(100f)
+            ) { snackbarData ->
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.inverseSurface,
+                        contentColor = MaterialTheme.colorScheme.inverseOnSurface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .testTag("app_notification_toast")
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = "NotificationIcon",
+                            tint = MaterialTheme.colorScheme.inverseOnSurface,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = snackbarData.visuals.message,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.inverseOnSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }
